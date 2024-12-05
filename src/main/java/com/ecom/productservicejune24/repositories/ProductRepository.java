@@ -2,11 +2,11 @@ package com.ecom.productservicejune24.repositories;
 
 import com.ecom.productservicejune24.Models.Product;
 import com.ecom.productservicejune24.projections.ProductWithIdAndTitle;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -23,7 +23,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findById(Long id);
 
     @Override
-    List<Product> findAll(Sort sort);
+    Page<Product> findAll(Pageable pageable);
+
+    // If we are using Pageable it will return Page and not List of Products
 
     //HQL
     @Query("select p.id as id, p.title as title from Product p where p.id = :x")

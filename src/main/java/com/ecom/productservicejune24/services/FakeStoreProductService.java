@@ -5,6 +5,8 @@ import com.ecom.productservicejune24.Models.Product;
 import com.ecom.productservicejune24.configurations.ApplicationConfig;
 import com.ecom.productservicejune24.exceptions.ProductNotFoundException;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpMessageConverterExtractor;
@@ -45,14 +47,14 @@ public class FakeStoreProductService implements ProductService{
     }
 
     @Override
-    public List<Product> getAllProducts() {
+    public Page<Product> getAllProducts(int pageNumber, int pageSize) {
         FakeStoreProductDTOs[] fakeStoreProductDTOs = restTemplate.getForObject("https://fakestoreapi.com/products",
                 FakeStoreProductDTOs[].class);
         List<Product> products = new ArrayList<>();
         for (FakeStoreProductDTOs fakeStoreProductDTO : fakeStoreProductDTOs) {
             products.add(convertFakeStoreProductDTOToProduct(fakeStoreProductDTO));
         }
-        return products;
+        return new PageImpl<>(products);
     }
 
     private Product convertFakeStoreProductDTOToProduct(FakeStoreProductDTOs fakeStoreProductDTOs) {
