@@ -7,6 +7,7 @@ import com.ecom.productservicejune24.exceptions.ProductNotFoundException;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpMessageConverterExtractor;
@@ -21,19 +22,32 @@ import java.util.List;
 public class FakeStoreProductService implements ProductService{
 
     private RestTemplate restTemplate;
-    public FakeStoreProductService(RestTemplate restTemplate) {
+    private RedisTemplate<String, Object> redisTemplate;
+
+
+    public FakeStoreProductService(RestTemplate restTemplate, RedisTemplate redisTemplate) {
         this.restTemplate = restTemplate;
+        this.redisTemplate =redisTemplate;
     }
 
 
     @Override
     public Product getSingleProduct(Long productId) throws ProductNotFoundException {
         // throw new ArithmeticException();
+
+        // Try to fetch the product from redis.
+        Product product = (Product)redisTemplate.opsForHash().get("PRODUCTS","PRODUCT_" + productId);
+
+        if (product != null) {
+            // CACHE_HIT.
+            product = new Product();
+        }
         FakeStoreProductDTOs fakeStoreProductDTOs =
-                restTemplate.getForObject("https://fakestoreapi.com/products/" + productId, FakeStoreProductDTOs.class);
+                restTemplate.getForObject(
+                        "https://fakestoreapi.com/products/" + productId, FakeStoreProductDTOs.class);
         if (fakeStoreProductDTOs == null){
             throw new ProductNotFoundException("product with id " + productId + " doesn't exist");
-        } // <-- was debugging here
+        }// <-- was debugging here
         // convert FakeStoreProductDTOs into Product
 //        Product product = new Product();
 //        product.setId(fakeStoreProductDTOs.getId());
@@ -43,7 +57,14 @@ public class FakeStoreProductService implements ProductService{
 //        category.setDescription(fakeStoreProductDTOs.getDescription());
 //        product.setCategory(category); // IMP point
 //        Abstracted out above code // Good Practice
-        return convertFakeStoreProductDTOToProduct(fakeStoreProductDTOs);
+
+
+        // IF "CACHE_MISS" Occurs then return from fakeStore after storing in Cache.
+        product = convertFakeStoreProductDTOToProduct(fakeStoreProductDTOs);
+
+        // Store the product inside Redis (Database).
+        redisTemplate.opsForHash().put("PRODUCTS","PRODUCTgit _" + productId,product);
+        return product;
     }
 
     @Override
